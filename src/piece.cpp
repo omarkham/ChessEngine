@@ -91,3 +91,11 @@ int Piece::getCol() const {
 int Piece::getRow() const {
     return row;
 }
+
+void Piece::setRow(int newRow) {
+    row = newRow;
+}
+
+void Piece::setCol(int newCol) {
+    col = newCol;
+}
