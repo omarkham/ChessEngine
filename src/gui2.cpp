@@ -38,21 +38,61 @@ void GUI::run() {
 
     drawChessboard();
     initializePiecesFromFEN("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr");//Initialized states
-    drawPieces();
+    
+    bool isPieceSelected = false;
+    int selectedPieceRow = 0;
+    int selectedPieceCol = 0;
+    
+    drawPieces(isPieceSelected, selectedPieceRow, selectedPieceCol);
 
     SDL_RenderPresent(renderer);
 
     SDL_Event event;
+
     bool quit = false;
+    Piece* selectedPiece = nullptr;
+
     while (!quit) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 quit = true;
             }
+            else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseRow = event.button.y / TILE_SIZE;
+                int mouseCol = event.button.x / TILE_SIZE;
+
+                if (!isPieceSelected) {
+                    //Select a piece
+                    for (Piece& piece : chessPieces) {
+                        if (piece.getRow() == mouseRow && piece.getCol() == mouseCol) {
+                            selectedPiece = &piece;
+                            selectedPieceRow = mouseRow;
+                            selectedPieceCol = mouseCol;
+                            isPieceSelected = true;
+                            break;
+                        }
+                    }
+                }
+                else {
+                    //Move the selected piece
+                    if (selectedPiece->isValidMove(mouseRow, mouseCol)) {
+                        selectedPiece->setRow(mouseRow);
+                        selectedPiece->setCol(mouseCol);
+                    }
+
+                    selectedPiece = nullptr;
+                    isPieceSelected = false;
+                }
+            }
         }
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderClear(renderer);
+        drawChessboard();
+        drawPieces(isPieceSelected, selectedPieceRow, selectedPieceCol);
+        SDL_RenderPresent(renderer);
+
     }
 
-    //SDL_Delay(3000); // Pause for 3 seconds before the program exits
 }
 
 void GUI::drawChessboard() {
@@ -162,7 +202,7 @@ void GUI::initializePiecesFromFEN(const std::string& fen) {
     }
 }
 
-void GUI::drawPieces() {
+void GUI::drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol) {
     for (const Piece& piece : chessPieces) {
         // Set the position and size of the piece's destination rectangle
         SDL_Rect pieceRect = {
@@ -174,5 +214,11 @@ void GUI::drawPieces() {
 
         // Render the piece texture to the screen
         SDL_RenderCopy(renderer, piece.getTexture(), nullptr, &pieceRect);
+    
+        //Highlight the selected piece if it matches the current piece
+        if (isPieceSelected && piece.getRow() == selectedPieceRow && piece.getCol() == selectedPieceCol) {
+            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 100); //Red highlight
+            SDL_RenderFillRect(renderer, &pieceRect);
+        }
     }
 }
