@@ -26,12 +26,11 @@ private:
     SDL_Window* window;
     SDL_Renderer* renderer;
     std::vector<Piece> chessPieces;
-
-    TTF_Font* font;
+    Piece* selectedPiece;
 
     void drawChessboard();
     void initializePiecesFromFEN(const std::string& fen);
-    void drawPieces();
+    void drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol);
 
 };
 
