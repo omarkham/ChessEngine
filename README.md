@@ -1,6 +1,11 @@
 ﻿# ChessEngine
 Using C++ and SDL2
 
+## Update: 2023-07-26
+<p align="left">
+   GUI is now based on the bitboard approach.
+</p>
+
 ## Update: 2023-07-11
 
 <p align="left">
