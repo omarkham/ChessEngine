@@ -5,7 +5,6 @@
 #include <SDL.h>
 #include <vector>
 #include <string>
-#include "piece.hpp"
 #include <SDL_ttf.h>
 
 enum class PieceType {
@@ -14,19 +13,20 @@ enum class PieceType {
 	KNIGHT,
 	BISHOP,
 	QUEEN,
-	KING
+	KING,
+	EMPTY
 };
 
 enum class PieceColor {
 	WHITE,
-	BLACK
+	BLACK,
+	EMPTY
 };
 
 class Piece {
 public:
 	Piece(PieceType type, PieceColor color, int initialRow, int initialCol, SDL_Renderer* renderer);
 	//Getters and setters for position, type, color, etc
-	bool isValidMove(int destRow, int destCol) const;
 	void setRow(int newRow);
 	void setCol(int newCol);
 	SDL_Texture* getTexture() const;
