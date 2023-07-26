@@ -72,13 +72,6 @@ Piece::Piece(PieceType type, PieceColor color, int initialRow, int initialCol, S
     }
 }
 
-
-bool Piece::isValidMove(int destRow, int destCol) const {
-	//Implement the logic to check if the move to the destination (destRow, destCol) is valid for the piece
-	//Return true if the move is valid, false otherwise
-    return true;
-}
-
 SDL_Texture* Piece::getTexture() const {
     return texture;
 }
