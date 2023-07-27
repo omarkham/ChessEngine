@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include "piece.hpp"
+#include "move.hpp"
 
 class Board {
 public:
@@ -14,6 +15,10 @@ public:
 	bool makeMove(int srcRow, int srcCol, int destRow, int destCol);
 	void printBitboard() const;
     void printBoard() const;
+    bool isValidPosition(int row, int col) const;
+    bool isEmpty(int row, int col) const;
+    void removePiece(int row, int col, PieceColor color);
+
 	PieceType getPieceType(int row, int col) const;
 	PieceColor getPieceColor(int row, int col) const;
 private:
