@@ -122,6 +122,25 @@ void GUI::drawChessboard() {
 }
 
 void GUI::drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol) {
+    // Check for valid moves for the selected piece and apply the light red tint
+    if (isPieceSelected) {
+        for (int row = 0; row < BOARD_SIZE; ++row) {
+            for (int col = 0; col < BOARD_SIZE; ++col) {
+                if (board.isValidMove(selectedPieceRow, selectedPieceCol, row, col)) {
+                    SDL_Rect moveRect = {
+                        col * TILE_SIZE,
+                        row * TILE_SIZE,
+                        TILE_SIZE,
+                        TILE_SIZE
+                    };
+
+                    SDL_SetRenderDrawColor(renderer, tintColor.r, tintColor.g, tintColor.b, tintColor.a);
+                    SDL_RenderFillRect(renderer, &moveRect);
+                }
+            }
+        }
+    }
+
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
             PieceType pieceType = board.getPieceType(row, col);
@@ -138,18 +157,22 @@ void GUI::drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPie
                     TILE_SIZE
                 };
 
-                // Render the piece texture to the screen
-                SDL_RenderCopy(renderer, getPieceTexture(pieceType, pieceColor), nullptr, &pieceRect);
-
                 // Highlight the selected piece if it matches the current piece
                 if (isPieceSelected && row == selectedPieceRow && col == selectedPieceCol) {
-                    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 100); // Red highlight
+                    SDL_SetRenderDrawColor(renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
                     SDL_RenderFillRect(renderer, &pieceRect);
                 }
+
+                // Render the piece texture to the screen
+                SDL_RenderCopy(renderer, getPieceTexture(pieceType, pieceColor), nullptr, &pieceRect);
             }
         }
     }
 }
+
+
+
+
 
 
 SDL_Texture* GUI::getPieceTexture(PieceType pieceType, PieceColor pieceColor) {
