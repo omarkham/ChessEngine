@@ -3,7 +3,9 @@ Using C++ and SDL2
 
 ## Update: 2023-07-26
 <p align="left">
-   GUI is now based on the bitboard approach.
+   - GUI is now based on a bitboard approach.
+   - Pieces are now constrained on basic rule-based logic and movement
+   - Possible moves are highlighted when you click on a piece
 </p>
 
 ## Update: 2023-07-11
