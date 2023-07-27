@@ -1,6 +1,8 @@
 #include "board.hpp"
 #include <iostream>
 #include <string>
+#include "move.hpp"
+#include "movegen.hpp"
 
 Board::Board() {
 
@@ -102,7 +104,57 @@ void Board::initializeFromFEN() {
 
 
 bool Board::isValidMove(int srcRow, int srcCol, int destRow, int destCol) const {
-    return true;
+    if (!isValidPosition(srcRow, srcCol) || !isValidPosition(destRow, destCol)) {
+        return false;
+    }
+
+    //Get the piece type and color of the source square
+    PieceType pieceType = getPieceType(srcRow, srcCol);
+    PieceColor pieceColor = getPieceColor(srcRow, srcCol);
+
+    //Generate moves for the selected piece (*this is passing the actual board)
+    std::vector<Move> movesForPiece;
+
+    //(*this passes the actual board as an input)
+    switch (pieceType) {
+    case PieceType::PAWN:
+        movesForPiece = generatePawnMoves(const_cast<Board&>(*this), srcRow, srcCol);
+        break;
+
+    case PieceType::ROOK:
+        movesForPiece = generateRookMoves(*this, srcRow, srcCol);
+        break;
+
+    case PieceType::KNIGHT:
+        movesForPiece = generateKnightMoves(*this, srcRow, srcCol);
+        break;
+
+    case PieceType::BISHOP:
+        movesForPiece = generateBishopMoves(*this, srcRow, srcCol);
+        break;
+
+    case PieceType::QUEEN:
+        movesForPiece = generateQueenMoves(*this, srcRow, srcCol);
+        break;
+
+    case PieceType::KING:
+        movesForPiece = generateKingMoves(*this, srcRow, srcCol);
+        break;
+
+    default:
+        std::cout << "Oopsies.." << std::endl;
+        // Invalid piece type
+        return false;
+    }
+
+    //Check if the desired move is in the list of valid moves
+    for (const Move& move : movesForPiece) {
+        if (move.srcRow == srcRow && move.srcCol == srcCol && move.destRow == destRow && move.destCol == destCol) {
+            return true; //Move is valid
+        }
+    }
+
+    return false; //Move is invalid
 }
 
 bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol) {
@@ -149,25 +201,35 @@ bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol) {
     default: break;
     }
 
-    // Clear the piece from the destination square (in case there's already a piece there)
-    switch (pieceColor) {
-    case PieceColor::WHITE:
-        whitePawns &= ~destBitboard;
-        whiteRooks &= ~destBitboard;
-        whiteKnights &= ~destBitboard;
-        whiteBishops &= ~destBitboard;
-        whiteQueens &= ~destBitboard;
-        whiteKing &= ~destBitboard;
-        break;
-    case PieceColor::BLACK:
-        blackPawns &= ~destBitboard;
-        blackRooks &= ~destBitboard;
-        blackKnights &= ~destBitboard;
-        blackBishops &= ~destBitboard;
-        blackQueens &= ~destBitboard;
-        blackKing &= ~destBitboard;
-        break;
-    default: break;
+    // If the move is a capture, remove the captured piece from the board
+    if (getPieceType(destRow, destCol) != PieceType::EMPTY) {
+        PieceColor capturedPieceColor = getPieceColor(destRow, destCol);
+
+        // Calculate the bit position of the captured piece
+        int capturedPiecePosition = destRow * 8 + destCol;
+        uint64_t capturedPieceBitboard = (uint64_t)1 << capturedPiecePosition;
+
+        // Clear the captured piece from the appropriate bitboard
+        switch (capturedPieceColor) {
+        case PieceColor::WHITE:
+            whitePawns &= ~capturedPieceBitboard;
+            whiteRooks &= ~capturedPieceBitboard;
+            whiteKnights &= ~capturedPieceBitboard;
+            whiteBishops &= ~capturedPieceBitboard;
+            whiteQueens &= ~capturedPieceBitboard;
+            whiteKing &= ~capturedPieceBitboard;
+            break;
+        case PieceColor::BLACK:
+            blackPawns &= ~capturedPieceBitboard;
+            blackRooks &= ~capturedPieceBitboard;
+            blackKnights &= ~capturedPieceBitboard;
+            blackBishops &= ~capturedPieceBitboard;
+            blackQueens &= ~capturedPieceBitboard;
+            blackKing &= ~capturedPieceBitboard;
+            break;
+        default:
+            break;
+        }
     }
 
     // Set the piece at the destination square
@@ -324,4 +386,40 @@ PieceType Board::getPieceType(int row, int col) const {
     }
 
     return PieceType::EMPTY; // No piece on the square
+}
+
+bool Board::isEmpty(int row, int col) const {
+    if (!isValidPosition(row, col)) {
+        return false;
+    }
+    return (getPieceType(row, col) == PieceType::EMPTY && getPieceColor(row, col) == PieceColor::EMPTY);
+}
+
+bool Board::isValidPosition(int row, int col) const {
+    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+}
+
+void Board::removePiece(int row, int col, PieceColor color) {
+    uint64_t squareBit = (uint64_t)1 << (row * 8 + col);
+
+    switch (color) {
+    case PieceColor::WHITE:
+        whitePawns &= ~squareBit;
+        whiteRooks &= ~squareBit;
+        whiteKnights &= ~squareBit;
+        whiteBishops &= ~squareBit;
+        whiteQueens &= ~squareBit;
+        whiteKing &= ~squareBit;
+        break;
+    case PieceColor::BLACK:
+        blackPawns &= ~squareBit;
+        blackRooks &= ~squareBit;
+        blackKnights &= ~squareBit;
+        blackBishops &= ~squareBit;
+        blackQueens &= ~squareBit;
+        blackKing &= ~squareBit;
+        break;
+    default:
+        break;
+    }
 }
