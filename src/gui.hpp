@@ -22,8 +22,12 @@ private:
     const int SCREEN_HEIGHT = 640;
     const int BOARD_SIZE = 8;
     const int TILE_SIZE = SCREEN_WIDTH / BOARD_SIZE;
-    const Uint32 COLOR_LIGHT = 0xEEEEEEFF;
-    const Uint32 COLOR_DARK = 0x8CA88AFF;
+    // Define wood-like colors
+    const Uint32 COLOR_LIGHT = 0xF0D9B5FF; // Light wood color
+    const Uint32 COLOR_DARK = 0xB58863FF;  // Dark wood color
+    SDL_Color highlightColor = { 255, 255, 128, 100 }; // Light yellow highlight (semi-transparent)
+    SDL_Color tintColor = { 218, 165, 32, 100 };       // Golden tint (semi-transparent)
+
 
     Board board;
 
