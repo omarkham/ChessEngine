@@ -1,12 +1,14 @@
 #include "gui.hpp"
+#include "mcts.hpp"
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <string>
 #include <iostream>
+#include <chrono>
 
-GUI::GUI() : board() {
+GUI::GUI() : board(), ai(1000), window(nullptr), renderer(nullptr) {
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
@@ -50,13 +52,20 @@ void GUI::run() {
     SDL_Event event;
 
     bool quit = false;
+    bool isPlayerTurn = true;
+    bool isAIThinking = false; // New flag to track if AI is thinking
+
+    bool isPlayerWhite = true; // Set to false if player is black
+
+    std::cout << "Initialized board, starting" << std::endl;
 
     while (!quit) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 quit = true;
             }
-            else if (event.type == SDL_MOUSEBUTTONDOWN) {
+            else if (event.type == SDL_MOUSEBUTTONDOWN && isPlayerTurn && !isAIThinking) {
+                std::cout << "Player's turn" << std::endl;
                 int mouseRow = event.button.y / TILE_SIZE;
                 int mouseCol = event.button.x / TILE_SIZE;
 
@@ -65,15 +74,24 @@ void GUI::run() {
                     PieceType pieceType = board.getPieceType(mouseRow, mouseCol);
                     PieceColor pieceColor = board.getPieceColor(mouseRow, mouseCol);
 
-                    if (pieceType != PieceType::EMPTY) {
+                    // Allow player to select their own pieces
+                    if ((isPlayerWhite && pieceColor == PieceColor::WHITE) ||
+                        (!isPlayerWhite && pieceColor == PieceColor::BLACK)) {
                         selectedPieceType = pieceType;
                         selectedPieceColor = pieceColor;
                         selectedPieceRow = mouseRow;
                         selectedPieceCol = mouseCol;
                         isPieceSelected = true;
+
+                        std::cout << "Selected piece: "
+                            << "Type: " << static_cast<int>(selectedPieceType)
+                            << " Color: " << static_cast<int>(selectedPieceColor)
+                            << " Row: " << selectedPieceRow
+                            << " Col: " << selectedPieceCol << std::endl;
                     }
                 }
                 else {
+                    std::cout << std::endl;
                     // Move the selected piece
                     if (board.isValidMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol)) {
                         std::cout << "Before Move:" << std::endl;
@@ -82,6 +100,7 @@ void GUI::run() {
                         std::cout << "After Move:" << std::endl;
                         board.printBoard();
 
+                        isPlayerTurn = false; // Switch to AI's turn after a valid player move
                     }
 
                     selectedPieceType = PieceType::EMPTY;
@@ -95,8 +114,59 @@ void GUI::run() {
         drawChessboard();
         drawPieces(isPieceSelected, selectedPieceRow, selectedPieceCol);
         SDL_RenderPresent(renderer);
+
+        // AI's turn
+        if (!isPlayerTurn && !isAIThinking) {
+            std::cout << "AI's turn, beginning now" << std::endl;
+            isAIThinking = true; // Set the flag to prevent player input
+
+            // Call the AI's turn to get the move
+            std::cout << "Finding best move..." << std::endl;
+            auto startTime = std::chrono::high_resolution_clock::now();
+
+            Move aiMove = ai.findBestMove(board);
+
+            auto endTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> duration = endTime - startTime;
+
+            // Make AI's move
+            int aiStartRow = aiMove.srcRow;
+            int aiStartCol = aiMove.srcCol;
+            int aiEndRow = aiMove.destRow;
+            int aiEndCol = aiMove.destCol;
+
+            std::cout << "AI's move: "
+                << "From: (" << aiStartRow << ", " << aiStartCol << ") "
+                << "To: (" << aiEndRow << ", " << aiEndCol << ") "
+                << "Duration: " << duration.count() << "ms" << std::endl;
+
+            board.makeMove(aiStartRow, aiStartCol, aiEndRow, aiEndCol);
+
+            //Check if player's king is in check or checkmate after AI's move
+            if (board.isCheckmate(getOppositeColor(board.getCurrentPlayer()))) {
+                std::cout << "Checkmate! AI wins!" << std::endl;
+                quit = true;
+            }
+            else if (board.isCheck(getOppositeColor(board.getCurrentPlayer()))) {
+                std::cout << "Check!" << std::endl;
+            }
+
+            //Check if player's move captured the AI's king
+            if (board.getPieceType(aiEndRow, aiEndCol) == PieceType::KING && board.getPieceColor(aiEndRow, aiEndCol) != board.getCurrentPlayer()) {
+                std::cout << "Checkmate! Player wins!" << std::endl;
+                quit = true;
+            }
+
+            isAIThinking = false; // Set the flag back to false to allow player input
+            isPlayerTurn = true; // Switch back to the player's turn
+
+            std::cout << "Done AI's turn" << std::endl;
+        }
     }
 }
+
+
+
 
 void GUI::drawChessboard() {
     bool isLightTile = true;
