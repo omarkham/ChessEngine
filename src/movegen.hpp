@@ -13,9 +13,7 @@ std::vector<Move> generateQueenMoves(const Board& board, int srcRow, int srcCol)
 std::vector<Move> generateKingMoves(const Board& board, int srcRow, int srcCol);
 
 std::vector<Move> generateMovesForPiece(const Board& board, int row, int col);
-
-bool isSquareAttacked(const Board& board, int row, int col, PieceColor attackingColor);
-
+std::vector<Move> generateMovesForColor(const Board& board, PieceColor color);
 
 PieceColor getOppositeColor(PieceColor color);
 
