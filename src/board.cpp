@@ -1,14 +1,21 @@
 #include "board.hpp"
-#include <iostream>
-#include <string>
 #include "move.hpp"
 #include "movegen.hpp"
+#include "mcts.hpp"
+#include <iostream>
+#include <string>
+#include <bitset>
+#include <vector>
 
 Board::Board() {
-
+    currentPlayer = PieceColor::WHITE;
+    previousBoardStates.reserve(256); //Reserve initial capacity to avoid frequent reallocations
 }
 
 void Board::initializeFromFEN() {
+    //reset
+    previousBoardStates.clear();
+
     // Clear all the bitboards
     whitePawns = 0;
     whiteKnights = 0;
@@ -422,4 +429,223 @@ void Board::removePiece(int row, int col, PieceColor color) {
     default:
         break;
     }
+}
+
+bool Board::isCheck(PieceColor color) const {
+    int kingRow = -1;
+    int kingCol = -1;
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            if (this->getPieceType(row, col) == PieceType::KING && this->getPieceColor(row, col) == color) {
+                kingRow = row;
+                kingCol = col;
+                break;
+            }
+        }
+    }
+
+    if (kingRow == -1 || kingCol == -1) {
+        // King not found, something's wrong with the board
+        return false;
+    }
+    // Check if the square where the king is located is under attack by the opponent
+    return isSquareAttacked(kingRow, kingCol, getOppositeColor(color));
+}
+
+bool Board::isCheckmate(PieceColor color) const {
+    if (!isCheck(color)) {
+        return false;
+    }
+
+    // Check if the player has any legal moves to get out of check
+    for (int row = 0; row < 8; ++row) {
+        for (int col = 0; col < 8; ++col) {
+            if (getPieceColor(row, col) == color) {
+                for (int destRow = 0; destRow < 8; ++destRow) {
+                    for (int destCol = 0; destCol < 8; ++destCol) {
+                        if (isValidMove(row, col, destRow, destCol)) {
+                            Board newBoard = *this;
+                            newBoard.makeMove(row, col, destRow, destCol);
+                            if (!newBoard.isCheck(color)) {
+                                // Found a legal move to get out of check
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool Board::isSquareAttacked(int row, int col, PieceColor attackingColor) const {
+    int dr[] = { -1, -1, -1, 0, 0, 1, 1, 1 };
+    int dc[] = { -1, 0, 1, -1, 1, -1, 0, 1 };
+
+    // Check for non-sliding attacks (knights, kings, and pawns)
+    for (int i = 0; i < 8; ++i) {
+        int targetRow = row + dr[i];
+        int targetCol = col + dc[i];
+        if (isValidPosition(targetRow, targetCol)) {
+            PieceColor targetPieceColor = getPieceColor(targetRow, targetCol);
+            PieceType targetPieceType = getPieceType(targetRow, targetCol);
+            if (targetPieceColor == attackingColor) {
+                if (targetPieceType == PieceType::KNIGHT) {
+                    if ((std::abs(dr[i]) == 2 && std::abs(dc[i]) == 1) || (std::abs(dr[i]) == 1 && std::abs(dc[i]) == 2)) {
+                        return true;
+                    }
+                }
+                else if (targetPieceType == PieceType::KING) {
+                    if (std::abs(dr[i]) <= 1 && std::abs(dc[i]) <= 1) {
+                        return true;
+                    }
+                }
+                else if (targetPieceType == PieceType::PAWN) {
+                    if ((attackingColor == PieceColor::WHITE && i >= 4) || (attackingColor == PieceColor::BLACK && i <= 3)) {
+                        // Pawns capture diagonally, so we check the corresponding diagonal directions for each color
+                        if (std::abs(dr[i]) == 1 && std::abs(dc[i]) == 1) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Check for sliding attacks (rooks, bishops, and queens)
+    int slidingDirections[] = { -1, 1, 0 };
+    for (int drDir : slidingDirections) {
+        for (int dcDir : slidingDirections) {
+            if (drDir == 0 && dcDir == 0) continue; // Skip the case where both directions are 0 (no movement)
+            for (int step = 1; step < 8; ++step) {
+                int targetRow = row + drDir * step;
+                int targetCol = col + dcDir * step;
+                if (isValidPosition(targetRow, targetCol)) {
+                    PieceColor targetPieceColor = getPieceColor(targetRow, targetCol);
+                    if (targetPieceColor == attackingColor) {
+                        PieceType targetPieceType = getPieceType(targetRow, targetCol);
+                        if (targetPieceType == PieceType::ROOK || targetPieceType == PieceType::QUEEN) {
+                            return true;
+                        }
+                        else {
+                            // We reached a piece that is of the same color, no need to check further in this direction
+                            break;
+                        }
+                    }
+                    else if (targetPieceColor != PieceColor::EMPTY) {
+                        // We reached a piece of the opponent's color that is not a rook or queen, no need to check further in this direction
+                        break;
+                    }
+                }
+                else {
+                    // The target square is not a valid position, stop checking in this direction
+                    break;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+
+bool Board::isGameOver() const {
+    return isCheckmate(PieceColor::WHITE) || isCheckmate(PieceColor::BLACK) || isStalemate();
+}
+
+bool Board::isStalemate() const {
+    // Stalemate occurs when the current player has no legal moves
+    PieceColor currentPlayer = getCurrentPlayer();
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            if (getPieceColor(row, col) == currentPlayer) {
+                std::vector<Move> legalMoves = generateMovesForPiece(*this, row, col);
+                if (!legalMoves.empty()) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true; // If no legal moves were found for any piece of the current player, it's stalemate
+}
+
+PieceColor Board::getCurrentPlayer() const {
+    return currentPlayer;
+}
+
+bool Board::isInsufficientMaterials() const {
+    //Get the number of pieces for each player
+    int whitePiecesCount = 0;
+    int blackPiecesCount = 0;
+
+    // Count white pieces
+    whitePiecesCount += popcount64(whitePawns);
+    whitePiecesCount += popcount64(whiteKnights);
+    whitePiecesCount += popcount64(whiteRooks);
+    whitePiecesCount += popcount64(whiteBishops);
+    whitePiecesCount += popcount64(whiteQueens);
+    whitePiecesCount += popcount64(whiteKing);
+
+    // Count black pieces
+    blackPiecesCount += popcount64(blackPawns);
+    blackPiecesCount += popcount64(blackKnights);
+    blackPiecesCount += popcount64(blackRooks);
+    blackPiecesCount += popcount64(blackBishops);
+    blackPiecesCount += popcount64(blackQueens);
+    blackPiecesCount += popcount64(blackKing);
+
+    return (whitePiecesCount + blackPiecesCount <= 2);
+}
+
+bool Board::isThreefoldRepetition() const {
+    //check if the board state has occured three times consecutively in the game state
+
+    //Serialize the current board state into a single 64-bit integer
+    uint64_t currentBoardState = 0;
+    currentBoardState |= whitePawns;
+    currentBoardState |= whiteKnights;
+    currentBoardState |= whiteBishops;
+    currentBoardState |= whiteRooks;
+    currentBoardState |= whiteQueens;
+    currentBoardState |= whiteKing;
+    currentBoardState |= blackPawns;
+    currentBoardState |= blackKnights;
+    currentBoardState |= blackBishops;
+    currentBoardState |= blackRooks;
+    currentBoardState |= blackQueens;
+    currentBoardState |= blackKing;
+
+    //Count how many times the current board state appears consecutively in the history
+    int count = 0;
+    int historySize = previousBoardStates.size();
+    for (int i = historySize - 1; i >= 0; --i) {
+        if (previousBoardStates[i] == currentBoardState) {
+            count++;
+        }
+        else {
+            break; //stop counting as soon as a different board state is encountered
+        }
+    }
+
+    //Add the current board state to the history
+    previousBoardStates.push_back(currentBoardState);
+
+    //Check if the current board state has occured three times consecutively
+    return count >= 3;
+}
+
+// Function to make the AI's move using the MCTS algorithm
+void Board::makeAIMove() {
+    MCTS mcts; // Create an instance of the MCTS class
+
+    //Call the MCTS algorithm to find the best move
+    Move bestMove = mcts.findBestMove(*this);
+
+    //Make the AI's move on the board
+    makeMove(bestMove.srcRow, bestMove.srcCol, bestMove.destRow, bestMove.destCol);
+}
+
+int Board::popcount64(uint64_t n) {
+    return std::bitset<64>(n).count();
 }
