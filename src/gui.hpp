@@ -7,6 +7,7 @@
 #include <string>
 #include "piece.hpp"
 #include "board.hpp"
+#include "mcts.hpp"
 #include <SDL_ttf.h>
 
 
@@ -30,6 +31,7 @@ private:
 
 
     Board board;
+    MCTS ai;
 
     SDL_Window* window;
     SDL_Renderer* renderer;
