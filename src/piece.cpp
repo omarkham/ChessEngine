@@ -6,7 +6,7 @@
 
 Piece::Piece(PieceType type, PieceColor color, int initialRow, int initialCol, SDL_Renderer* renderer) : col(initialCol), row(initialRow), texture(nullptr) {
     // Set the path to the image asset based on the piece type and color
-    
+
     std::string imagePath;
     if (color == PieceColor::BLACK) {
         switch (type) {
