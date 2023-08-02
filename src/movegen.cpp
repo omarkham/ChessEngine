@@ -7,7 +7,7 @@
 
 
 // Function to generate moves for a pawn
-std::vector<Move> generatePawnMoves(const Board & board, int srcRow, int srcCol) {
+std::vector<Move> generatePawnMoves(const Board& board, int srcRow, int srcCol) {
     std::vector<Move> moves;
 
     PieceColor pieceColor = board.getPieceColor(srcRow, srcCol);
@@ -26,7 +26,7 @@ std::vector<Move> generatePawnMoves(const Board & board, int srcRow, int srcCol)
         destRow = srcRow + 2 * forwardDirection;
         destCol = srcCol;
         if (board.isEmpty(destRow, destCol) && board.isEmpty(destRow - forwardDirection, destCol)) {
-            moves.push_back({ srcRow, srcCol, destRow, destCol, MoveType::QUIET }); 
+            moves.push_back({ srcRow, srcCol, destRow, destCol, MoveType::QUIET });
 
         }
     }
@@ -218,42 +218,42 @@ bool isSquareAttacked(const Board& board, int row, int col, PieceColor attacking
 
     // Check for non-sliding attacks (knights, kings, and pawns)
     for (int i = 0; i < 8; ++i) {
-int targetRow = row + dr[i];
-int targetCol = col + dc[i];
-if (board.isValidPosition(targetRow, targetCol)) {
-    PieceColor targetPieceColor = board.getPieceColor(targetRow, targetCol);
-    PieceType targetPieceType = board.getPieceType(targetRow, targetCol);
-    if (targetPieceColor == attackingColor) {
-        if (targetPieceType == PieceType::KNIGHT) {
-            if ((std::abs(dr[i]) == 2 && std::abs(dc[i]) == 1) || (std::abs(dr[i]) == 1 && std::abs(dc[i]) == 2)) {
-                return true;
+        int targetRow = row + dr[i];
+        int targetCol = col + dc[i];
+        if (board.isValidPosition(targetRow, targetCol)) {
+            PieceColor targetPieceColor = board.getPieceColor(targetRow, targetCol);
+            PieceType targetPieceType = board.getPieceType(targetRow, targetCol);
+            if (targetPieceColor == attackingColor) {
+                if (targetPieceType == PieceType::KNIGHT) {
+                    if ((std::abs(dr[i]) == 2 && std::abs(dc[i]) == 1) || (std::abs(dr[i]) == 1 && std::abs(dc[i]) == 2)) {
+                        return true;
+                    }
+                }
+                else if (targetPieceType == PieceType::KING) {
+                    if (std::abs(dr[i]) <= 1 && std::abs(dc[i]) <= 1) {
+                        return true;
+                    }
+                }
+                else if (targetPieceType == PieceType::PAWN) {
+                    if (attackingColor == PieceColor::WHITE) {
+                        if (i == 4 && dr[i] == -1 && dc[i] == -1) { // White pawn capturing to the top-left
+                            return true;
+                        }
+                        else if (i == 5 && dr[i] == -1 && dc[i] == 1) { // White pawn capturing to the top-right
+                            return true;
+                        }
+                    }
+                    else {
+                        if (i == 6 && dr[i] == 1 && dc[i] == -1) { // Black pawn capturing to the bottom-left
+                            return true;
+                        }
+                        else if (i == 7 && dr[i] == 1 && dc[i] == 1) { // Black pawn capturing to the bottom-right
+                            return true;
+                        }
+                    }
+                }
             }
         }
-        else if (targetPieceType == PieceType::KING) {
-            if (std::abs(dr[i]) <= 1 && std::abs(dc[i]) <= 1) {
-                return true;
-            }
-        }
-        else if (targetPieceType == PieceType::PAWN) {
-            if (attackingColor == PieceColor::WHITE) {
-                if (i == 4 && dr[i] == -1 && dc[i] == -1) { // White pawn capturing to the top-left
-                    return true;
-                }
-                else if (i == 5 && dr[i] == -1 && dc[i] == 1) { // White pawn capturing to the top-right
-                    return true;
-                }
-            }
-            else {
-                if (i == 6 && dr[i] == 1 && dc[i] == -1) { // Black pawn capturing to the bottom-left
-                    return true;
-                }
-                else if (i == 7 && dr[i] == 1 && dc[i] == 1) { // Black pawn capturing to the bottom-right
-                    return true;
-                }
-            }
-        }
-    }
-}
     }
 
     // Check for sliding attacks (rooks, bishops, and queens)
@@ -368,3 +368,18 @@ std::vector<Move> generateMovesForPiece(const Board& board, int row, int col)
     return {};
 }
 
+std::vector<Move> generateAllMoves(const Board& board, PieceColor color) {
+    std::vector<Move> allMoves;
+
+    for (int row = 0; row < board.BOARD_SIZE; ++row) {
+        for (int col = 0; col < board.BOARD_SIZE; ++col) {
+            PieceColor pieceColor = board.getPieceColor(row, col);
+            if (pieceColor == color) {
+                std::vector<Move> moves = generateMovesForPiece(board, row, col);
+                allMoves.insert(allMoves.end(), moves.begin(), moves.end());
+            }
+        }
+    }
+
+    return allMoves;
+}
