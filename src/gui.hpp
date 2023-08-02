@@ -7,8 +7,9 @@
 #include <string>
 #include "piece.hpp"
 #include "board.hpp"
+#include "search.hpp"
 #include <SDL_ttf.h>
-
+#include <map>
 
 class GUI {
 public:
@@ -17,6 +18,11 @@ public:
     void run();
 
 private:
+
+    std::map<std::string, SDL_Texture*> cachedTextures;
+
+    PieceColor currentPlayerColor;
+
     //Constants
     const int SCREEN_WIDTH = 640;
     const int SCREEN_HEIGHT = 640;
@@ -28,6 +34,7 @@ private:
     SDL_Color highlightColor = { 255, 255, 128, 100 }; // Light yellow highlight (semi-transparent)
     SDL_Color tintColor = { 218, 165, 32, 100 };       // Golden tint (semi-transparent)
 
+    bool isValidMoveForCurrentPlayer(int srcRow, int srcCol, int destRow, int destCol);
 
     Board board;
 
@@ -39,6 +46,7 @@ private:
     void drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol);
     SDL_Texture* getPieceTexture(PieceType pieceType, PieceColor pieceColor);
     SDL_Texture* loadTexture(const std::string& filePath);
+
 };
 
 #endif
