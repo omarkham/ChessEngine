@@ -6,6 +6,9 @@ Using C++ and SDL2
    - Implement promotion
 </p>
 <p align="left">
+   - Implement castling
+</p>
+<p align="left">
    - Implement check and checkmate and prevention measures
 </p>
 <p align="left">
@@ -14,8 +17,14 @@ Using C++ and SDL2
 <p align="left">
    - Implement who's turn it is and the resulting logic changes
 </p>
+
+
+## Update: 2023-08-01
 <p align="left">
-   - Implement the AI to play against
+   - Switched from a Monte Carlo Tree Search (MCTS) approach to an alpha-beta pruning mini-max approach
+</p>
+<p align="left">
+   - Implemented AI opponent
 </p>
 
 ## Update: 2023-07-26
