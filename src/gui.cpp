@@ -5,6 +5,8 @@
 #include <SDL_ttf.h>
 #include <string>
 #include <iostream>
+#include "search.hpp"
+#include <map>
 
 GUI::GUI() : board() {
     // Initialize SDL
@@ -26,9 +28,26 @@ GUI::GUI() : board() {
 }
 
 GUI::~GUI() {
+    //Clean up the cached textures
+    for (auto& texture : cachedTextures) {
+        SDL_DestroyTexture(texture.second);
+    }
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+
+// Helper function to check if a move is valid for the current player
+bool GUI::isValidMoveForCurrentPlayer(int srcRow, int srcCol, int destRow, int destCol) {
+    PieceColor currentPlayerColor = PieceColor::BLACK;
+    PieceColor srcPieceColor = board.getPieceColor(srcRow, srcCol);
+
+    if (srcPieceColor == currentPlayerColor && board.isValidMove(srcRow, srcCol, destRow, destCol)) {
+        return true;
+    }
+    return false;
 }
 
 void GUI::run() {
@@ -51,7 +70,13 @@ void GUI::run() {
 
     bool quit = false;
 
-    while (!quit) {
+    // Specify the player's color and AI's color
+    PieceColor playerColor = PieceColor::BLACK;
+    PieceColor aiColor = PieceColor::WHITE;
+
+    bool isPlayerTurn = false;
+
+    while (!quit && !board.isGameOver()) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 quit = true;
@@ -60,43 +85,127 @@ void GUI::run() {
                 int mouseRow = event.button.y / TILE_SIZE;
                 int mouseCol = event.button.x / TILE_SIZE;
 
-                if (!isPieceSelected) {
-                    // Select a piece
-                    PieceType pieceType = board.getPieceType(mouseRow, mouseCol);
-                    PieceColor pieceColor = board.getPieceColor(mouseRow, mouseCol);
+                if (isPlayerTurn) {
+                    // Player's turn
+                    if (!isPieceSelected) {
+                        // Select a piece
+                        PieceType pieceType = board.getPieceType(mouseRow, mouseCol);
+                        PieceColor pieceColor = board.getPieceColor(mouseRow, mouseCol);
 
-                    if (pieceType != PieceType::EMPTY) {
-                        selectedPieceType = pieceType;
-                        selectedPieceColor = pieceColor;
-                        selectedPieceRow = mouseRow;
-                        selectedPieceCol = mouseCol;
-                        isPieceSelected = true;
+                        if (pieceType != PieceType::EMPTY && pieceColor == playerColor) {
+                            selectedPieceType = pieceType;
+                            selectedPieceColor = pieceColor;
+                            selectedPieceRow = mouseRow;
+                            selectedPieceCol = mouseCol;
+                            isPieceSelected = true;
+                        }
                     }
-                }
-                else {
-                    // Move the selected piece
-                    if (board.isValidMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol)) {
-                        std::cout << "Before Move:" << std::endl;
-                        board.printBoard();
-                        board.makeMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol);
-                        std::cout << "After Move:" << std::endl;
-                        board.printBoard();
+                    else {
+                        // Check if the player clicked on the same square again to unselect the piece
+                        if (selectedPieceRow == mouseRow && selectedPieceCol == mouseCol) {
+                            isPieceSelected = false;
+                        }
+                        else {
+                            // Move the selected piece if it is a valid move for the player
+                            if (isValidMoveForCurrentPlayer(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol)) {
+                                // Create a temporary copy of the board
+                                Board tempBoard = board;
 
+                                // Make the move on the temporary board
+                                tempBoard.makeMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol);
+
+                                // Check if the move leads to the player's own king being in check
+                                PieceColor currentPlayerColor = board.getCurrentPlayer();
+                                if (!tempBoard.isInCheck()) {
+                                    std::cout << "Before Move:" << std::endl;
+                                    board.printBoard();
+                                    board.makeMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol);
+                                    std::cout << "After Move:" << std::endl;
+                                    board.printBoard();
+                                    isPieceSelected = false; // Player's move is complete, deselect the piece
+
+                                    // Change turn after the player makes a valid move
+                                    isPlayerTurn = false;
+                                }
+                                else {
+                                    std::cout << "Invalid move! Your own king will be in check." << std::endl;
+                                }
+                            }
+                        }
                     }
-
-                    selectedPieceType = PieceType::EMPTY;
-                    selectedPieceColor = PieceColor::EMPTY;
-                    isPieceSelected = false;
                 }
             }
         }
+
+
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderClear(renderer);
         drawChessboard();
         drawPieces(isPieceSelected, selectedPieceRow, selectedPieceCol);
         SDL_RenderPresent(renderer);
+
+        if (!isPlayerTurn && !board.isGameOver()) {
+            // AI's turn
+
+            // Get the AI's move using alpha-beta search
+            Search search;
+            Move bestMove = search.alphaBetaSearch(board, 2); // Increase the depth for stronger AI, e.g., 4
+
+            // Make the AI's move
+            board.makeMove(bestMove.srcRow, bestMove.srcCol, bestMove.destRow, bestMove.destCol);
+
+            std::cout << "AI Move:" << std::endl;
+            board.printBoard();
+
+            // Check if the AI's move resulted in a checkmate
+            if (board.isCheckmate()) {
+                std::cout << "Checkmate! ";
+                if (board.getCurrentPlayer() == PieceColor::WHITE) {
+                    std::cout << "Black wins!" << std::endl;
+                }
+                else {
+                    std::cout << "White wins!" << std::endl;
+                }
+                isPlayerTurn = true; // End the game
+                quit = true; // End the game loop
+            }
+            else if (board.isInCheck()) {
+                std::cout << "Check!" << std::endl;
+
+                // Check if the AI's king is in check and try to move it out of check
+                if (board.getCurrentPlayer() == aiColor) {
+                    Move aiKingMove = search.alphaBetaSearch(board, 2); // Increase the depth for stronger AI, e.g., 4
+                    board.makeMove(aiKingMove.srcRow, aiKingMove.srcCol, aiKingMove.destRow, aiKingMove.destCol);
+                    std::cout << "AI moves its king." << std::endl;
+                }
+            }
+
+            isPlayerTurn = true; // AI's move is complete, switch back to the player's turn
+        }
+
+    }
+
+    if (board.isGameOver()) {
+        // The game is over, you can display a message or perform other actions here
+        // For example:
+        if (board.isCheckmate()) {
+            std::cout << "Checkmate! ";
+            if (board.getCurrentPlayer() == playerColor) {
+                std::cout << "White wins!" << std::endl;
+            }
+            else {
+                std::cout << "Black wins!" << std::endl;
+            }
+        }
+        else {
+            std::cout << "It's a stalemate!" << std::endl;
+        }
     }
 }
+
+
+
+
 
 void GUI::drawChessboard() {
     bool isLightTile = true;
@@ -225,6 +334,11 @@ SDL_Texture* GUI::getPieceTexture(PieceType pieceType, PieceColor pieceColor) {
 
 
 SDL_Texture* GUI::loadTexture(const std::string& filePath) {
+    //Check if the texture is already loaded and cached
+    if (cachedTextures.find(filePath) != cachedTextures.end()) {
+        return cachedTextures[filePath];
+    }
+
     SDL_Surface* surface = IMG_Load(filePath.c_str());
     if (surface == nullptr) {
         // Handle the error if the texture cannot be loaded
@@ -240,6 +354,9 @@ SDL_Texture* GUI::loadTexture(const std::string& filePath) {
         printf("Error creating texture: %s\n", SDL_GetError());
         return nullptr;
     }
+
+    //Cache the loaded texture
+    cachedTextures[filePath] = texture;
 
     return texture;
 }
