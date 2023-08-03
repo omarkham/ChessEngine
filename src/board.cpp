@@ -330,19 +330,19 @@ void Board::printBoard() const {
 }
 
 
-PieceColor Board::getPieceColor(int row, int col) const{
-	uint64_t squareBit = (uint64_t)1 << (row * 8 + col); // 8 is the BOARD_SIZE
+PieceColor Board::getPieceColor(int row, int col) const {
+    uint64_t squareBit = (uint64_t)1 << (row * 8 + col); // 8 is the BOARD_SIZE
 
-	if (whitePawns & squareBit || whiteKnights & squareBit || whiteBishops & squareBit ||
-		whiteRooks & squareBit || whiteQueens & squareBit || whiteKing & squareBit) {
-		return PieceColor::WHITE;
-	}
-	else if (blackPawns & squareBit || blackKnights & squareBit || blackBishops & squareBit ||
-		blackRooks & squareBit || blackQueens & squareBit || blackKing & squareBit) {
-		return PieceColor::BLACK;
-	}
+    if (whitePawns & squareBit || whiteKnights & squareBit || whiteBishops & squareBit ||
+        whiteRooks & squareBit || whiteQueens & squareBit || whiteKing & squareBit) {
+        return PieceColor::WHITE;
+    }
+    else if (blackPawns & squareBit || blackKnights & squareBit || blackBishops & squareBit ||
+        blackRooks & squareBit || blackQueens & squareBit || blackKing & squareBit) {
+        return PieceColor::BLACK;
+    }
 
-	return PieceColor::EMPTY; // No piece on the square
+    return PieceColor::EMPTY; // No piece on the square
 }
 
 PieceType Board::getPieceType(int row, int col) const {
@@ -396,7 +396,7 @@ bool Board::isEmpty(int row, int col) const {
 }
 
 bool Board::isValidPosition(int row, int col) const {
-    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+    return row >= 0 && row < BOARD_SIZE&& col >= 0 && col < BOARD_SIZE;
 }
 
 void Board::removePiece(int row, int col, PieceColor color) {
@@ -422,4 +422,125 @@ void Board::removePiece(int row, int col, PieceColor color) {
     default:
         break;
     }
+}
+
+
+bool Board::isGameOver() const {
+    // Check for checkmate or stalemate
+    bool isCurrentPlayerInCheck = isInCheck();
+
+    // Generate all possible moves for the current player
+    std::vector<Move> allMoves = generateAllMoves(*this, currentPlayer);
+
+    bool hasValidMoves = false;
+
+    // Check if the current player has any valid moves
+    for (const Move& move : allMoves) {
+        Board tempBoard = *this;
+        tempBoard.makeMove(move.srcRow, move.srcCol, move.destRow, move.destCol);
+        if (!tempBoard.isInCheck()) {
+            hasValidMoves = true;
+            break;
+        }
+    }
+
+    if (isCurrentPlayerInCheck && !hasValidMoves) {
+        if (currentPlayer == PieceColor::WHITE) {
+            std::cout << "Black wins by checkmate!" << std::endl;
+        }
+        else {
+            std::cout << "White wins by checkmate!" << std::endl;
+        }
+        return true;
+    }
+    else if (!isCurrentPlayerInCheck && !hasValidMoves) {
+        std::cout << "It's a stalemate!" << std::endl;
+        return true;
+    }
+
+    return false;
+}
+
+
+
+bool Board::isInCheck() const {
+    // Get the position of the current player's king
+    int kingRow = -1;
+    int kingCol = -1;
+    PieceColor currentPlayer = getCurrentPlayer();
+
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            if (getPieceType(row, col) == PieceType::KING && getPieceColor(row, col) == currentPlayer) {
+                kingRow = row;
+                kingCol = col;
+                break;
+            }
+        }
+    }
+
+    if (kingRow == -1 || kingCol == -1) {
+        // King not found (this should not happen in a valid chess position)
+        return false;
+    }
+
+    // Check if any opponent's piece can attack the current player's king
+    PieceColor opponentColor = (currentPlayer == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            if (getPieceColor(row, col) == opponentColor) {
+                if (isValidMove(row, col, kingRow, kingCol)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+
+PieceColor Board::getOppositeColor(PieceColor color) const {
+    return (color == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+}
+
+void Board::findKing(PieceType kingType, PieceColor kingColor, int& kingRow, int& kingCol) const {
+    uint64_t kingBitboard = kingColor == PieceColor::WHITE ? whiteKing : blackKing;
+
+    // Iterate over the set bits in the kingBitboard to find the position of the king
+    for (int position = 0; position < BOARD_SIZE * BOARD_SIZE; ++position) {
+        uint64_t squareBit = (uint64_t)1 << position;
+        if (kingBitboard & squareBit) {
+            kingRow = position / BOARD_SIZE;
+            kingCol = position % BOARD_SIZE;
+            return;
+        }
+    }
+}
+
+bool Board::isCheckmate() const {
+    bool isCurrentPlayerInCheck = isInCheck();
+    if (!isCurrentPlayerInCheck) {
+        return false;
+    }
+
+    std::vector<Move> allMoves = generateAllMoves(*this, currentPlayer);
+
+    //Check if any of the valid moves can get the player out of check
+    for (const Move& move : allMoves) {
+        Board tempBoard = *this;
+        tempBoard.makeMove(move.srcRow, move.srcCol, move.destRow, move.destCol);
+        if (!tempBoard.isInCheck()) {
+            return false; //Player can escape check, so it's not checkmate
+        }
+    }
+    return true;
+}
+
+PieceColor Board::getCurrentPlayer() const {
+    return currentPlayer;
+}
+
+void Board::setCurrentPlayer(PieceColor color) {
+    currentPlayer = color;
 }

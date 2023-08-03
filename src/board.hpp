@@ -9,18 +9,27 @@ class Board {
 public:
     const int BOARD_SIZE = 8;
 
-	Board();
-	void initializeFromFEN();
-	bool isValidMove(int srcRow, int srcCol, int destRow, int destCol) const;
-	bool makeMove(int srcRow, int srcCol, int destRow, int destCol);
-	void printBitboard() const;
+    Board();
+    void initializeFromFEN();
+    bool isValidMove(int srcRow, int srcCol, int destRow, int destCol) const;
+    bool makeMove(int srcRow, int srcCol, int destRow, int destCol);
+    void printBitboard() const;
     void printBoard() const;
     bool isValidPosition(int row, int col) const;
     bool isEmpty(int row, int col) const;
     void removePiece(int row, int col, PieceColor color);
+    bool isGameOver() const;
+    bool isInCheck() const;
+    bool isCheckmate() const;
+    void findKing(PieceType kingType, PieceColor kingColor, int& kingRow, int& kingCol) const;
 
-	PieceType getPieceType(int row, int col) const;
-	PieceColor getPieceColor(int row, int col) const;
+    PieceColor getOppositeColor(PieceColor color) const;
+    PieceType getPieceType(int row, int col) const;
+    PieceColor getPieceColor(int row, int col) const;
+
+    PieceColor getCurrentPlayer() const;
+    void setCurrentPlayer(PieceColor color);
+
 private:
     uint64_t whitePawns;
     uint64_t whiteKnights;
@@ -34,6 +43,8 @@ private:
     uint64_t blackRooks;
     uint64_t blackQueens;
     uint64_t blackKing;
+
+    PieceColor currentPlayer;
 
 };
 
