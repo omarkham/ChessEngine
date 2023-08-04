@@ -4,13 +4,14 @@
 #include "ai.hpp"
 #include "board.hpp"
 #include <limits>
+#include "board.hpp"
 
 Move Search::alphaBetaSearch(Board& board, int depth) {
     //Initial values for alpha and beta, representing the best possible scores for maximizing and minimizing player, respectively
     int alpha = std::numeric_limits<int>::min();
     int beta = std::numeric_limits<int>::max();
 
-    PieceColor currentPlayerColor = board.getCurrentPlayer();
+    PieceColor currentPlayerColor = board.getAIPlayer(); // AI is always the maximizing player
 
     std::vector<Move> allMoves = generateAllMoves(board, currentPlayerColor);
 
@@ -24,34 +25,26 @@ Move Search::alphaBetaSearch(Board& board, int depth) {
         //Evaluate the position after making the move
         int score = alphaBeta(tempBoard, depth - 1, alpha, beta, getOppositeColor(currentPlayerColor));
 
-        //If the current player is maximizing
-        if (currentPlayerColor == board.getCurrentPlayer()) {
-            if (score > alpha) {
-                alpha = score;
-                bestMove = move;
-            }
-        }
-        //If the current player is minimizing
-        else {
-            if (score < beta) {
-                beta = score;
-                bestMove = move;
-            }
+        if (score > alpha) {
+            alpha = score;
+            bestMove = move;
         }
     }
     return bestMove;
 }
 
+
 int Search::alphaBeta(Board& board, int depth, int alpha, int beta, PieceColor maximizingPlayer) {
-    if (depth == 0 || board.isGameOver()) {
-        return Evaluation::evaluate(board);
+    PieceColor color = board.getAIPlayer();
+    if (depth == 0 || board.isGameOver(color)) {
+        return Evaluation::evaluate(board, color); // Pass the AI player color for evaluation
     }
 
     std::vector<Move> allMoves = generateAllMoves(board, maximizingPlayer);
 
     if (allMoves.empty()) {
         // No moves available, either stalemate or checkmate
-        if (board.isInCheck()) {
+        if (board.isInCheck(color)) { // Pass the AI player color for checking
             // Checkmate, return a very negative score
             return std::numeric_limits<int>::min();
         }
@@ -61,7 +54,7 @@ int Search::alphaBeta(Board& board, int depth, int alpha, int beta, PieceColor m
         }
     }
 
-    if (maximizingPlayer == board.getCurrentPlayer()) {
+    if (maximizingPlayer == color) {
         int maxEval = std::numeric_limits<int>::min();
 
         for (const Move& move : allMoves) {
