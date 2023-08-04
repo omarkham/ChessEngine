@@ -10,6 +10,8 @@
 #include "search.hpp"
 #include <SDL_ttf.h>
 #include <map>
+#include <SDL_events.h>
+#include <SDL_keyboard.h>
 
 class GUI {
 public:
@@ -19,9 +21,10 @@ public:
 
 private:
 
-    std::map<std::string, SDL_Texture*> cachedTextures;
+    PieceColor realPlayerColor = PieceColor::EMPTY;
+    PieceColor aiPlayerColor = PieceColor::EMPTY;
 
-    PieceColor currentPlayerColor;
+    std::map<std::string, SDL_Texture*> cachedTextures;
 
     //Constants
     const int SCREEN_WIDTH = 640;
@@ -47,6 +50,7 @@ private:
     SDL_Texture* getPieceTexture(PieceType pieceType, PieceColor pieceColor);
     SDL_Texture* loadTexture(const std::string& filePath);
 
+    PieceColor choosePlayerColor();
 };
 
 #endif
