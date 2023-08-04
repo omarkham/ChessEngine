@@ -425,12 +425,12 @@ void Board::removePiece(int row, int col, PieceColor color) {
 }
 
 
-bool Board::isGameOver() const {
+bool Board::isGameOver(PieceColor color) const {
     // Check for checkmate or stalemate
-    bool isCurrentPlayerInCheck = isInCheck();
+    bool isCurrentPlayerInCheck = isInCheck(color);
 
     // Generate all possible moves for the current player
-    std::vector<Move> allMoves = generateAllMoves(*this, currentPlayer);
+    std::vector<Move> allMoves = generateAllMoves(*this, color);
 
     bool hasValidMoves = false;
 
@@ -438,14 +438,14 @@ bool Board::isGameOver() const {
     for (const Move& move : allMoves) {
         Board tempBoard = *this;
         tempBoard.makeMove(move.srcRow, move.srcCol, move.destRow, move.destCol);
-        if (!tempBoard.isInCheck()) {
+        if (!tempBoard.isInCheck(color)) {
             hasValidMoves = true;
             break;
         }
     }
 
     if (isCurrentPlayerInCheck && !hasValidMoves) {
-        if (currentPlayer == PieceColor::WHITE) {
+        if (color == PieceColor::WHITE) {
             std::cout << "Black wins by checkmate!" << std::endl;
         }
         else {
@@ -463,15 +463,14 @@ bool Board::isGameOver() const {
 
 
 
-bool Board::isInCheck() const {
+bool Board::isInCheck(PieceColor color) const {
     // Get the position of the current player's king
     int kingRow = -1;
     int kingCol = -1;
-    PieceColor currentPlayer = getCurrentPlayer();
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            if (getPieceType(row, col) == PieceType::KING && getPieceColor(row, col) == currentPlayer) {
+            if (getPieceType(row, col) == PieceType::KING && getPieceColor(row, col) == color) {
                 kingRow = row;
                 kingCol = col;
                 break;
@@ -485,7 +484,7 @@ bool Board::isInCheck() const {
     }
 
     // Check if any opponent's piece can attack the current player's king
-    PieceColor opponentColor = (currentPlayer == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+    PieceColor opponentColor = getOppositeColor(color);
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
             if (getPieceColor(row, col) == opponentColor) {
@@ -518,29 +517,21 @@ void Board::findKing(PieceType kingType, PieceColor kingColor, int& kingRow, int
     }
 }
 
-bool Board::isCheckmate() const {
-    bool isCurrentPlayerInCheck = isInCheck();
+bool Board::isCheckmate(PieceColor color) const {
+    bool isCurrentPlayerInCheck = isInCheck(color);
     if (!isCurrentPlayerInCheck) {
         return false;
     }
 
-    std::vector<Move> allMoves = generateAllMoves(*this, currentPlayer);
+    std::vector<Move> allMoves = generateAllMoves(*this, color);
 
     //Check if any of the valid moves can get the player out of check
     for (const Move& move : allMoves) {
         Board tempBoard = *this;
         tempBoard.makeMove(move.srcRow, move.srcCol, move.destRow, move.destCol);
-        if (!tempBoard.isInCheck()) {
+        if (!tempBoard.isInCheck(color)) {
             return false; //Player can escape check, so it's not checkmate
         }
     }
     return true;
-}
-
-PieceColor Board::getCurrentPlayer() const {
-    return currentPlayer;
-}
-
-void Board::setCurrentPlayer(PieceColor color) {
-    currentPlayer = color;
 }
