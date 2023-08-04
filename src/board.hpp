@@ -18,19 +18,22 @@ public:
     bool isValidPosition(int row, int col) const;
     bool isEmpty(int row, int col) const;
     void removePiece(int row, int col, PieceColor color);
-    bool isGameOver() const;
-    bool isInCheck() const;
-    bool isCheckmate() const;
+    bool isGameOver(PieceColor color) const;
+    bool isInCheck(PieceColor color) const;
+    bool isCheckmate(PieceColor color) const;
     void findKing(PieceType kingType, PieceColor kingColor, int& kingRow, int& kingCol) const;
 
     PieceColor getOppositeColor(PieceColor color) const;
     PieceType getPieceType(int row, int col) const;
     PieceColor getPieceColor(int row, int col) const;
 
-    PieceColor getCurrentPlayer() const;
-    void setCurrentPlayer(PieceColor color);
+    PieceColor getAIPlayer() const { return aiPlayer; }
+    PieceColor getRealPlayer() const { return realPlayer;  }
+    void setAIPlayer(PieceColor color) { aiPlayer = color;  }
+    void setRealPlayer(PieceColor color) { realPlayer = color;  }
 
 private:
+
     uint64_t whitePawns;
     uint64_t whiteKnights;
     uint64_t whiteBishops;
@@ -44,7 +47,8 @@ private:
     uint64_t blackQueens;
     uint64_t blackKing;
 
-    PieceColor currentPlayer;
+    PieceColor aiPlayer;
+    PieceColor realPlayer;
 
 };
 
