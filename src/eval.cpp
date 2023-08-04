@@ -18,7 +18,7 @@ const int PIECE_POSITIONS[8][8] = {
     {-20, -10, -10, -10, -10, -10, -10, -20}
 };
 
-int Evaluation::evaluate(const Board& board) {
+int Evaluation::evaluate(const Board& board, PieceColor color) {
     int whiteScore = 0;
     int blackScore = 0;
 
@@ -59,5 +59,7 @@ int Evaluation::evaluate(const Board& board) {
         }
     }
 
-    return (board.getCurrentPlayer() == PieceColor::WHITE) ? whiteScore - blackScore : blackScore - whiteScore;
+    color = board.getAIPlayer();
+
+    return (color == PieceColor::WHITE) ? whiteScore - blackScore : blackScore - whiteScore;
 }
