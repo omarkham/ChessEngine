@@ -5,7 +5,7 @@
 
 class Evaluation {
 public:
-	static int evaluate(const Board& board);
+	static int evaluate(const Board& board, PieceColor color);
 };
 
 #endif // EVAL_HPP
