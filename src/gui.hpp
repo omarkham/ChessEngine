@@ -12,6 +12,7 @@
 #include <map>
 #include <SDL_events.h>
 #include <SDL_keyboard.h>
+#include <unordered_map>
 
 class GUI {
 public:
@@ -20,6 +21,8 @@ public:
     void run();
 
 private:
+
+    std::unordered_map<PieceColor, PieceType> promotionPieceType;
 
     PieceColor realPlayerColor = PieceColor::EMPTY;
     PieceColor aiPlayerColor = PieceColor::EMPTY;
@@ -39,6 +42,7 @@ private:
 
     bool isValidMoveForCurrentPlayer(int srcRow, int srcCol, int destRow, int destCol);
     void printValidMoves(int selectedPieceRow, int selectedPieceCol);
+    PieceType choosePromotionPieceType(PieceColor currentPlayerColor);
 
     Board board;
 
@@ -47,7 +51,7 @@ private:
     Piece* selectedPiece;
 
     void drawChessboard();
-    void drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol);
+    void drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol, PieceType promotionPiece = PieceType::EMPTY);
     SDL_Texture* getPieceTexture(PieceType pieceType, PieceColor pieceColor);
     SDL_Texture* loadTexture(const std::string& filePath);
 
