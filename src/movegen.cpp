@@ -4,7 +4,10 @@
 #include "piece.hpp"
 #include "move.hpp"
 #include "board.hpp"
-
+#include <iostream>
+#include <cstdlib>
+#include <unordered_map>
+#include <utility>
 
 // Function to generate moves for a pawn
 std::vector<Move> generatePawnMoves(const Board& board, int srcRow, int srcCol) {
@@ -194,8 +197,8 @@ std::vector<Move> generateKingMoves(const Board& board, int srcRow, int srcCol) 
         if (board.isValidPosition(destRow, destCol)) {
             PieceColor targetPieceColor = board.getPieceColor(destRow, destCol);
             if (targetPieceColor != pieceColor) {
-                //Check if the destination square is under attack by the opponent
-                //If it's not under attack, it's a valid move for the king
+                // Check if the destination square is under attack by the opponent
+                // If it's not under attack, it's a valid move for the king
                 if (!isSquareAttacked(board, destRow, destCol, getOppositeColor(pieceColor))) {
                     moves.push_back({ srcRow, srcCol, destRow, destCol,
                         (targetPieceColor == PieceColor::EMPTY) ? MoveType::QUIET : MoveType::CAPTURE });
@@ -203,6 +206,12 @@ std::vector<Move> generateKingMoves(const Board& board, int srcRow, int srcCol) 
             }
         }
     }
+
+    // Generate castling moves
+    std::vector<Move> castlingMoves = generateCastlingMoves(board, srcRow, srcCol);
+
+    //moves.insert(moves.end(), castlingMovesAlive.begin(), castlingMovesAlive.end());
+    moves.insert(moves.end(), castlingMoves.begin(), castlingMoves.end());
 
     return moves;
 }
@@ -383,3 +392,52 @@ std::vector<Move> generateAllMoves(const Board& board, PieceColor color) {
 
     return allMoves;
 }
+
+
+std::vector<Move> generateCastlingMoves(const Board& board, int srcRow, int srcCol) {
+    std::vector<Move> moves;
+
+    PieceColor pieceColor = board.getPieceColor(srcRow, srcCol);
+    int kingRow = srcRow;
+    int kingCol = srcCol;
+
+    //if (board.hasPieceMoved(kingRow, kingCol)) {
+        //std::cout << "No castling moves: King has moved";
+        //return moves;
+    //}
+
+    // Check for king-side castling
+    int kingSideRookCol = board.BOARD_SIZE - 1;
+    if (!board.hasPieceMoved(kingRow, kingCol) &&
+        !board.hasPieceMoved(kingRow, kingSideRookCol) &&
+        board.isEmpty(kingRow, kingCol + 1) &&
+        board.isEmpty(kingRow, kingCol + 2) &&
+        !isSquareAttacked(board, kingRow, kingCol, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol + 1, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol + 2, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol + 2, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol + 1, getOppositeColor(pieceColor))) {
+        //std::cout << "Yes castling moves: Passes all criterion";
+        moves.push_back({ srcRow, srcCol, kingRow, kingCol + 3, MoveType::CASTLING });
+    }
+
+    // Check for queen-side castling
+    int queenSideRookCol = 0;
+    if (!board.hasPieceMoved(kingRow, kingCol) &&
+        !board.hasPieceMoved(kingRow, queenSideRookCol) &&
+        board.isEmpty(kingRow, kingCol - 1) &&
+        board.isEmpty(kingRow, kingCol - 2) &&
+        board.isEmpty(kingRow, kingCol - 3) &&
+        !isSquareAttacked(board, kingRow, kingCol, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol - 1, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol - 2, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol - 2, getOppositeColor(pieceColor)) &&
+        !isSquareAttacked(board, kingRow, kingCol - 1, getOppositeColor(pieceColor))) {
+        //std::cout << "Yes castling moves: Passes all criterion";
+        moves.push_back({ srcRow, srcCol, kingRow, kingCol - 4, MoveType::CASTLING });
+    }
+
+
+    return moves;
+}
+
