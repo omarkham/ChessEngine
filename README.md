@@ -3,12 +3,13 @@ Using C++ and SDL2
 
 ## To Do:
 <p align="left">
-   - Implement promotion
-</p>
-<p align="left">
    - Add sounds for when pieces are moved and captured
 </p>
 
+## Update: 2023-08-09
+<p align="left">
+   - Implemented castling and promotion
+</p>
 
 ## Update: 2023-08-01
 <p align="left">
