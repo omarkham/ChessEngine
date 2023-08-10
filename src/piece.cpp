@@ -70,12 +70,13 @@ Piece::Piece(PieceType type, PieceColor color, int initialRow, int initialCol, S
         }
         SDL_FreeSurface(surface);
     }
+
+    hasMoved = false;
 }
 
 SDL_Texture* Piece::getTexture() const {
     return texture;
 }
-
 
 int Piece::getCol() const {
     return col;
@@ -92,3 +93,12 @@ void Piece::setRow(int newRow) {
 void Piece::setCol(int newCol) {
     col = newCol;
 }
+
+bool Piece::HasMoved() const {
+    return hasMoved;
+}
+
+void Piece::setHasMoved(bool hasMovedValue) {
+    hasMoved = hasMovedValue;
+}
+
