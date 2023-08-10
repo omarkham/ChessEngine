@@ -10,6 +10,7 @@
 #include <SDL_events.h>
 #include <SDL_keyboard.h>
 #include "movegen.hpp"
+#include "move.hpp"
 
 GUI::GUI() : board() {
     // Initialize SDL
@@ -28,6 +29,10 @@ GUI::GUI() : board() {
             }
         }
     }
+
+    //Initialize promotion piece types
+    promotionPieceType[PieceColor::WHITE] = PieceType::QUEEN;
+    promotionPieceType[PieceColor::BLACK] = PieceType::QUEEN;
 }
 
 GUI::~GUI() {
@@ -207,8 +212,26 @@ void GUI::run() {
                                 // Check if the move leads to the player's own king being in check
                                 PieceColor currentPlayerColor = realPlayerColor;
                                 if (!tempBoard.isInCheck(currentPlayerColor)) {
-                                  
-                                    board.makeMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol);
+                                    //Perform pawn promotion check
+                                    if (selectedPieceType == PieceType::PAWN &&
+                                        ((currentPlayerColor == PieceColor::WHITE && mouseRow == 0) ||
+                                            (currentPlayerColor == PieceColor::BLACK && mouseRow == 7))) {
+                                        //Prompt the player to choose a promotion piece type
+                                        selectedPieceType = choosePromotionPieceType(currentPlayerColor);
+
+                                        //Update the move object to include the promotion piece type
+                                        PieceType promotionPiece = choosePromotionPieceType(realPlayerColor);
+                                        Move promotionMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol, MoveType::QUIET, promotionPiece);
+
+
+                                        //Make the promotion move on the actual board
+                                        board.makeMove(promotionMove.srcRow, promotionMove.srcCol, promotionMove.destRow, promotionMove.destCol, promotionMove.promotionPiece);
+                                    }
+                                    else {
+                                        //Make a regular move
+                                        board.makeMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol);
+
+                                    }
 
                                     std::cout << "After move:" << std::endl;
                                     board.printBoard();
@@ -318,7 +341,7 @@ void GUI::drawChessboard() {
     }
 }
 
-void GUI::drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol) {
+void GUI::drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPieceCol, PieceType promotionPiece) {
     // Check for valid moves for the selected piece and apply the light red tint
     if (isPieceSelected) {
         for (int row = 0; row < BOARD_SIZE; ++row) {
@@ -338,6 +361,8 @@ void GUI::drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPie
         }
     }
 
+
+
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
             PieceType pieceType = board.getPieceType(row, col);
@@ -354,12 +379,19 @@ void GUI::drawPieces(bool isPieceSelected, int selectedPieceRow, int selectedPie
                     TILE_SIZE
                 };
 
-                // Highlight the selected piece if it matches the current piece
-                if (isPieceSelected && row == selectedPieceRow && col == selectedPieceCol) {
-                    SDL_SetRenderDrawColor(renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
-                    SDL_RenderFillRect(renderer, &pieceRect);
+                //Handle pawn promotion texture
+                if (pieceType == PieceType::PAWN && ((pieceColor == PieceColor::WHITE && row == 0) || (pieceColor == PieceColor::BLACK && row == 7))) {
+                    //Render the promotion piece texture to the screen
+                    SDL_RenderCopy(renderer, getPieceTexture(pieceType, pieceColor), nullptr, &pieceRect);
                 }
-
+                else {
+                    // Highlight the selected piece if it matches the current piece
+                    if (isPieceSelected && row == selectedPieceRow && col == selectedPieceCol) {
+                        SDL_SetRenderDrawColor(renderer, highlightColor.r, highlightColor.g, highlightColor.b, highlightColor.a);
+                        SDL_RenderFillRect(renderer, &pieceRect);
+                    }
+                }
+                
                 // Render the piece texture to the screen
                 SDL_RenderCopy(renderer, getPieceTexture(pieceType, pieceColor), nullptr, &pieceRect);
             }
@@ -475,5 +507,32 @@ void GUI::printValidMoves(int selectedPieceRow, int selectedPieceCol) {
     std::cout << "Valid moves for the selected piece: " << std::endl;
     for (const Move& move : validMoves) {
         std::cout << "Frome (" << selectedPieceRow << "," << selectedPieceCol << ") to (" << move.destRow << "," << move.destCol << ")" << std::endl;
+    }
+}
+
+PieceType GUI::choosePromotionPieceType(PieceColor currentPlayerColor) {
+    char choice;
+    std::cout << "Pawn promotion! Choose promotion piece type:" << std::endl;
+    std::cout << "Q - Queen" << std::endl;
+    std::cout << "R - Rook" << std::endl;
+    std::cout << "N - Knight" << std::endl;
+    std::cout << "B - Bishop" << std::endl;
+
+    while (true) {
+        std::cin >> choice;
+        choice = std::toupper(choice);
+        
+        switch (choice) {
+        case 'Q':
+            return PieceType::QUEEN;
+        case 'R':
+            return PieceType::ROOK;
+        case 'N':
+            return PieceType::KNIGHT;
+        case 'B':
+            return PieceType::BISHOP;
+        default:
+            std::cout << "Invalid choice. Choose Q, R, N, or B:";
+        }
     }
 }
