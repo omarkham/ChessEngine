@@ -38,6 +38,7 @@ private:
     SDL_Color tintColor = { 218, 165, 32, 100 };       // Golden tint (semi-transparent)
 
     bool isValidMoveForCurrentPlayer(int srcRow, int srcCol, int destRow, int destCol);
+    void printValidMoves(int selectedPieceRow, int selectedPieceCol);
 
     Board board;
 
