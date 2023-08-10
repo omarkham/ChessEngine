@@ -32,10 +32,16 @@ public:
 	SDL_Texture* getTexture() const;
 	int getCol() const;
 	int getRow() const;
+
+	bool HasMoved() const;
+	void setHasMoved(bool hasMovedValue);
+
 private:
 	SDL_Texture* texture;
 	int col;
 	int row;
+	bool hasMoved;
 };
+
 
 #endif //PIECE_HPP
