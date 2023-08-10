@@ -7,6 +7,7 @@
 enum class MoveType {
     QUIET,     // Quiet move (non-capturing)
     CAPTURE,   // Capture move
+    CASTLING
     // Add other move types as needed, e.g., EN_PASSANT, PROMOTION, CASTLING, etc.
 };
 
