@@ -3,9 +3,15 @@
 #include <string>
 #include "move.hpp"
 #include "movegen.hpp"
+#include <unordered_map>
 
 Board::Board() {
-
+    //Initialize the pieceMoved array to false
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            pieceMoved[row][col] = false;
+        }
+    }
 }
 
 void Board::initializeFromFEN() {
@@ -112,10 +118,12 @@ bool Board::isValidMove(int srcRow, int srcCol, int destRow, int destCol) const 
     PieceType pieceType = getPieceType(srcRow, srcCol);
     PieceColor pieceColor = getPieceColor(srcRow, srcCol);
 
+    PieceType pieceTypeDest = getPieceType(destRow, destCol);
+    PieceColor pieceColorDest = getPieceColor(destRow, destCol);
+
     //Generate moves for the selected piece (*this is passing the actual board)
     std::vector<Move> movesForPiece;
 
-    //(*this passes the actual board as an input)
     switch (pieceType) {
     case PieceType::PAWN:
         movesForPiece = generatePawnMoves(const_cast<Board&>(*this), srcRow, srcCol);
@@ -144,7 +152,7 @@ bool Board::isValidMove(int srcRow, int srcCol, int destRow, int destCol) const 
     default:
         std::cout << "Oopsies.." << std::endl;
         // Invalid piece type
-        return false;
+        return true;
     }
 
     //Check if the desired move is in the list of valid moves
@@ -154,30 +162,133 @@ bool Board::isValidMove(int srcRow, int srcCol, int destRow, int destCol) const 
         }
     }
 
+    // Check for castling move
+    if (pieceType == PieceType::KING && pieceTypeDest == PieceType::ROOK) {
+        // Inside the "King-side castling" block
+        if (!hasPieceMoved(srcRow, srcCol + 2) &&
+            isEmpty(srcRow, srcCol + 1) && isEmpty(srcRow, srcCol + 2) &&
+            !isSquareAttacked(*this, srcRow, srcCol + 1, getOppositeColor(pieceColor)) &&
+            !isSquareAttacked(*this, srcRow, srcCol + 2, getOppositeColor(pieceColor))) {
+
+            // Move the king and rook to their new positions
+            return true;
+        }
+
+        // Inside the "Queen-side castling" block
+        if (!hasPieceMoved(srcRow, srcCol - 2) &&
+            isEmpty(srcRow, srcCol - 1) && isEmpty(srcRow, srcCol - 2) && isEmpty(srcRow, srcCol - 3) &&
+            !isSquareAttacked(*this, srcRow, srcCol - 1, getOppositeColor(pieceColor)) &&
+            !isSquareAttacked(*this, srcRow, srcCol - 2, getOppositeColor(pieceColor))) {
+
+            // Move the king and rook to their new positions
+            return true;
+        }
+
+    }
+
+
     return false; //Move is invalid
 }
 
-bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol) {
+bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol){
     if (!isValidMove(srcRow, srcCol, destRow, destCol)) {
-        return false; //invalid move
+        return false; // Invalid move
     }
 
-    //Get the piece at the source position
-    PieceType pieceType = getPieceType(srcRow, srcCol);
-    PieceColor pieceColor = getPieceColor(srcRow, srcCol);
+    // Get the piece at the source position
+    PieceType pieceTypeSrc = getPieceType(srcRow, srcCol);
+    PieceColor pieceColorSrc = getPieceColor(srcRow, srcCol);
+    // Get the piece at the destination position
+    PieceType pieceTypeDest = getPieceType(destRow, destCol);
+    PieceColor pieceColorDest = getPieceColor(destRow, destCol);
 
-    //Calculate the bit positions of the source and destination squares
+
+    //HANDLE THE CASTLING MOVE
+    if (pieceTypeSrc == PieceType::KING && pieceTypeDest == PieceType::ROOK) {
+        std::cout << "Entering castling mode";
+        std::cout << "Dest col: " << destCol;
+        std::cout << "Src col: " << srcCol;
+        // Kingside castling
+        if (destCol == 7) {  // Kingside castling
+            if (pieceColorSrc == PieceColor::WHITE) {
+                std::cout << "White kingside castling" << std::endl;
+
+                whiteKing &= ~((uint64_t)1 << (srcRow * 8 + srcCol));
+                whiteKing |= ((uint64_t)1 << (destRow * 8 + destCol - 1));
+
+                whiteRooks &= ~((uint64_t)1 << (destRow * 8 + 7));
+                whiteRooks |= ((uint64_t)1 << (destRow * 8 + 5));
+
+                // Clear the original king position after castling
+
+            }
+            else {
+                blackKing &= ~((uint64_t)1 << (srcRow * 8 + srcCol));
+                blackKing |= ((uint64_t)1 << (destRow * 8 + destCol - 1));
+
+                blackRooks &= ~((uint64_t)1 << (destRow * 8 + 7));
+                blackRooks |= ((uint64_t)1 << (destRow * 8 + 5));
+
+                blackKing &= ~((uint64_t)1 << (0 * 8 + 7));
+            }
+
+        }
+        else if (destCol == 0) {
+            // Queenside castling
+            // Move the king and the rook to their proper positions
+            if (pieceColorSrc == PieceColor::WHITE) {
+                std::cout << "White queenside castling" << std::endl;
+
+                whiteKing &= ~((uint64_t)1 << (srcRow * 8 + srcCol));
+                whiteKing |= ((uint64_t)1 << (destRow * 8 + destCol + 2));
+
+                whiteRooks &= ~((uint64_t)1 << (destRow * 8 + 0));
+                whiteRooks |= ((uint64_t)1 << (destRow * 8 + 3));
+
+                // Clear the original king position after castling
+                whiteKing &= ~((uint64_t)1 << (0 * 8));
+
+            }
+            else {
+                blackKing &= ~((uint64_t)1 << (srcRow * 8 + srcCol));
+                blackKing |= ((uint64_t)1 << (destRow * 8 + destCol + 2));
+
+                blackRooks &= ~((uint64_t)1 << (destRow * 8 + 0));
+                blackRooks |= ((uint64_t)1 << (destRow * 8 + 3));
+
+                blackKing &= ~((uint64_t)1 << (0 * 8 + 7));
+            }
+
+        }
+
+    }
+    whiteKing &= ~((uint64_t)1 << (0 * 8));
+    blackKing &= ~((uint64_t)1 << (7 * 8));
+    whiteKing &= ~((uint64_t)1 << (7 * 8 + 7));
+    blackKing &= ~((uint64_t)1 << (0 * 8 + 7));
+    whiteKing &= ~((uint64_t)1 << (7 * 8));
+    blackKing &= ~((uint64_t)1 << (0 * 8 ));
+    whiteKing &= ~((uint64_t)1 << (7 * 8 + 7));
+    blackKing &= ~((uint64_t)1 << (0 * 8 + 7));
+
+    //  HANDLE THE CASTLING MOVE
+
+    // Mark both source and destination squares as having a piece moved
+    pieceMoved[srcRow][srcCol] = true;
+    pieceMoved[destRow][destCol] = true;
+
+    // Calculate the bit positions of the source and destination squares
     int srcPosition = srcRow * 8 + srcCol;
     int destPosition = destRow * 8 + destCol;
 
-    //Update the appropriate bitboard to reflect the move
+    // Update the appropriate bitboard to reflect the move
     uint64_t srcBitboard = (uint64_t)1 << srcPosition;
     uint64_t destBitboard = (uint64_t)1 << destPosition;
 
-    //Clear the piece from the source square
-    switch (pieceColor) {
+    // Clear the piece from the source square
+    switch (pieceColorSrc) {
     case PieceColor::WHITE:
-        switch (pieceType) {
+        switch (pieceTypeSrc) {
         case PieceType::PAWN: whitePawns &= ~srcBitboard; break;
         case PieceType::ROOK: whiteRooks &= ~srcBitboard; break;
         case PieceType::KNIGHT: whiteKnights &= ~srcBitboard; break;
@@ -188,7 +299,7 @@ bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol) {
         }
         break;
     case PieceColor::BLACK:
-        switch (pieceType) {
+        switch (pieceTypeSrc) {
         case PieceType::PAWN: blackPawns &= ~srcBitboard; break;
         case PieceType::ROOK: blackRooks &= ~srcBitboard; break;
         case PieceType::KNIGHT: blackKnights &= ~srcBitboard; break;
@@ -227,15 +338,14 @@ bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol) {
             blackQueens &= ~capturedPieceBitboard;
             blackKing &= ~capturedPieceBitboard;
             break;
-        default:
-            break;
+        default: break;
         }
     }
 
     // Set the piece at the destination square
-    switch (pieceColor) {
+    switch (pieceColorSrc) {
     case PieceColor::WHITE:
-        switch (pieceType) {
+        switch (pieceTypeSrc) {
         case PieceType::PAWN: whitePawns |= destBitboard; break;
         case PieceType::ROOK: whiteRooks |= destBitboard; break;
         case PieceType::KNIGHT: whiteKnights |= destBitboard; break;
@@ -246,7 +356,7 @@ bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol) {
         }
         break;
     case PieceColor::BLACK:
-        switch (pieceType) {
+        switch (pieceTypeSrc) {
         case PieceType::PAWN: blackPawns |= destBitboard; break;
         case PieceType::ROOK: blackRooks |= destBitboard; break;
         case PieceType::KNIGHT: blackKnights |= destBitboard; break;
@@ -260,12 +370,9 @@ bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol) {
     }
 
     return true;
-
 }
 
-void Board::printBitboard() const {
 
-}
 
 void Board::printBoard() const {
     // Create a character array to represent the chessboard
@@ -426,6 +533,25 @@ void Board::removePiece(int row, int col, PieceColor color) {
 
 
 bool Board::isGameOver(PieceColor color) const {
+    // Find the positions of both kings
+    int whiteKingRow, whiteKingCol, blackKingRow, blackKingCol;
+    findKing(PieceType::KING, PieceColor::WHITE, whiteKingRow, whiteKingCol);
+    findKing(PieceType::KING, PieceColor::BLACK, blackKingRow, blackKingCol);
+
+    if (whiteKingRow == -1 || whiteKingCol == -1 || blackKingRow == -1 || blackKingCol == -1) {
+        return true;
+    }
+
+    // Check if either king is captured
+    if (isEmpty(whiteKingRow, whiteKingCol)) {
+        std::cout << "Black wins by capturing the white king!" << std::endl;
+        return true;
+    }
+    if (isEmpty(blackKingRow, blackKingCol)) {
+        std::cout << "White wins by capturing the black king!" << std::endl;
+        return true;
+    }
+
     // Check for checkmate or stalemate
     bool isCurrentPlayerInCheck = isInCheck(color);
 
@@ -447,9 +573,11 @@ bool Board::isGameOver(PieceColor color) const {
     if (isCurrentPlayerInCheck && !hasValidMoves) {
         if (color == PieceColor::WHITE) {
             std::cout << "Black wins by checkmate!" << std::endl;
+            return true;
         }
         else {
             std::cout << "White wins by checkmate!" << std::endl;
+            return true;
         }
         return true;
     }
@@ -460,6 +588,8 @@ bool Board::isGameOver(PieceColor color) const {
 
     return false;
 }
+
+
 
 
 
@@ -515,7 +645,12 @@ void Board::findKing(PieceType kingType, PieceColor kingColor, int& kingRow, int
             return;
         }
     }
+
+    // If the king is not found, set kingRow and kingCol to invalid values
+    kingRow = -1;
+    kingCol = -1;
 }
+
 
 bool Board::isCheckmate(PieceColor color) const {
     bool isCurrentPlayerInCheck = isInCheck(color);
@@ -534,4 +669,68 @@ bool Board::isCheckmate(PieceColor color) const {
         }
     }
     return true;
+}
+
+bool Board::isCastlingValid(int srcRow, int srcCol, int destRow, int destCol) const {
+    //Check if the piece at the source position is the king and it hasn't moved yet
+    if (getPieceType(srcRow, srcCol) != PieceType::KING || hasPieceMoved(srcRow, srcCol)) {
+        return false;
+    }
+
+    //Check if the destination square is one of the valid castling positions
+    bool isShortCastling = (destRow == srcRow && destCol == srcCol + 2);
+    bool isLongCastling = (destRow == srcRow && destCol == srcCol - 2);
+
+    if (!isShortCastling && !isLongCastling) {
+        return false;
+    }
+
+    //Check if the king and corresponding rook(s) are in their initial position(s)
+    int kingRow = srcRow;
+    int kingCol = srcCol;
+
+    int rookRow, rookCol;
+    if (isShortCastling) {
+        rookRow = srcRow;
+        rookCol = srcCol + 3; //Right-side rook
+    }
+    else {
+        rookRow = srcRow;
+        rookCol = srcCol - 4; //Left-side rook
+    }
+
+    if (getPieceType(rookRow, rookCol) != PieceType::ROOK || hasPieceMoved(rookRow, rookCol)) {
+        return false;
+    }
+
+    //Check if there are no pieces between the king and the rook(s)
+    int direction = (isShortCastling) ? 1 : -1;
+    for (int col = kingCol + direction; col != rookCol; col += direction) {
+        if (!isEmpty(kingRow, col)) {
+            return false;
+        }
+    }
+
+    //Check if the square the king moves over are not under attack
+    int step = (isShortCastling) ? 1 : -1;
+    for (int col = kingCol; col != destCol; col += step) {
+        if (isSquareAttacked(*this, kingRow, col, getOppositeColor(getPieceColor(kingRow, kingCol)))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Board::hasPieceMoved(int row, int col) const {
+    return pieceMoved[row][col];
+}
+
+void Board::printHasPieceMoved() {
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            std::cout << hasPieceMoved(row, col) << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 }
