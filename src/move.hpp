@@ -18,13 +18,15 @@ struct Move {
     int destRow;
     int destCol;
     MoveType flags; // Additional flags to represent special moves
+    PieceType promotionPiece;
 
     // Constructor to initialize a move with default values
-    Move() : srcRow(-1), srcCol(-1), destRow(-1), destCol(-1), flags(MoveType::QUIET) {}
+    Move() : srcRow(-1), srcCol(-1), destRow(-1), destCol(-1), flags(MoveType::QUIET), promotionPiece(PieceType::EMPTY) {}
 
     // Constructor to initialize a move with specific values
-    Move(int srcRow, int srcCol, int destRow, int destCol, MoveType flags = MoveType::QUIET)
-        : srcRow(srcRow), srcCol(srcCol), destRow(destRow), destCol(destCol), flags(flags) {}
+        Move(int srcRow, int srcCol, int destRow, int destCol, MoveType flags = MoveType::QUIET, PieceType promotionPiece = PieceType::EMPTY)
+        : srcRow(srcRow), srcCol(srcCol), destRow(destRow), destCol(destCol), flags(flags), promotionPiece(promotionPiece) {}
+
 };
 
 #endif // MOVE_HPP
