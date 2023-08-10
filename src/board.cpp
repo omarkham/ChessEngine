@@ -190,7 +190,7 @@ bool Board::isValidMove(int srcRow, int srcCol, int destRow, int destCol) const 
     return false; //Move is invalid
 }
 
-bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol){
+bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol, PieceType promotionPiece){
     if (!isValidMove(srcRow, srcCol, destRow, destCol)) {
         return false; // Invalid move
     }
@@ -346,7 +346,20 @@ bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol){
     switch (pieceColorSrc) {
     case PieceColor::WHITE:
         switch (pieceTypeSrc) {
-        case PieceType::PAWN: whitePawns |= destBitboard; break;
+        case PieceType::PAWN:
+            if (destRow == 0 && promotionPiece != PieceType::EMPTY) {
+                switch (promotionPiece) {
+                case PieceType::ROOK: whiteRooks |= destBitboard; break;
+                case PieceType::KNIGHT: whiteKnights |= destBitboard; break;
+                case PieceType::BISHOP: whiteBishops |= destBitboard; break;
+                case PieceType::QUEEN: whiteQueens |= destBitboard; break;
+                default: break;
+                }
+            }
+            else {
+                whitePawns |= destBitboard;
+            }
+            break;
         case PieceType::ROOK: whiteRooks |= destBitboard; break;
         case PieceType::KNIGHT: whiteKnights |= destBitboard; break;
         case PieceType::BISHOP: whiteBishops |= destBitboard; break;
@@ -357,7 +370,20 @@ bool Board::makeMove(int srcRow, int srcCol, int destRow, int destCol){
         break;
     case PieceColor::BLACK:
         switch (pieceTypeSrc) {
-        case PieceType::PAWN: blackPawns |= destBitboard; break;
+        case PieceType::PAWN:
+            if (destRow == 7 && promotionPiece != PieceType::EMPTY) {
+                switch (promotionPiece) {
+                case PieceType::ROOK: blackRooks |= destBitboard; break;
+                case PieceType::KNIGHT: blackKnights |= destBitboard; break;
+                case PieceType::BISHOP: blackBishops |= destBitboard; break;
+                case PieceType::QUEEN: blackQueens |= destBitboard; break;
+                default: break;
+                }
+            }
+            else {
+                blackPawns |= destBitboard;
+            }
+            break;
         case PieceType::ROOK: blackRooks |= destBitboard; break;
         case PieceType::KNIGHT: blackKnights |= destBitboard; break;
         case PieceType::BISHOP: blackBishops |= destBitboard; break;
