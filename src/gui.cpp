@@ -9,6 +9,7 @@
 #include <map>
 #include <SDL_events.h>
 #include <SDL_keyboard.h>
+#include "movegen.hpp"
 
 GUI::GUI() : board() {
     // Initialize SDL
@@ -92,6 +93,9 @@ void GUI::run() {
 
     // Start the game loop
     while (!quit && !board.isGameOver(realPlayerColor)) {
+        if (board.isGameOver(realPlayerColor) || board.isGameOver(aiPlayerColor)){
+            break;
+        }
         // Handle SDL events
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -114,9 +118,79 @@ void GUI::run() {
                             selectedPieceRow = mouseRow;
                             selectedPieceCol = mouseCol;
                             isPieceSelected = true;
+
+                            printValidMoves(selectedPieceRow, selectedPieceCol);
+
+                            if (board.getPieceType(selectedPieceRow, selectedPieceCol) == PieceType::KING) {
+                                std::vector<Move> validKingMoves = generateCastlingMoves(board, selectedPieceRow, selectedPieceCol);
+
+                                std::cout << "Valid moves for the selected king:" << std::endl;
+                                for (const Move& move : validKingMoves) {
+                                    std::cout << "From (" << selectedPieceRow << "," << selectedPieceCol << ") to (" << move.destRow << "," << move.destCol << ")" << std::endl;
+                                }
+
+                                // Debugging the kingside castling conditions
+                                int kingRow = selectedPieceRow;
+                                int kingCol = selectedPieceCol;
+                                int kingSideRookCol = kingCol + 3;
+                                PieceColor pieceColor = board.getPieceColor(kingRow, kingCol);
+
+                                bool condition1 = !board.hasPieceMoved(kingRow, kingCol);
+                                bool condition2 = !board.hasPieceMoved(kingRow, kingSideRookCol);
+                                bool condition3 = board.isEmpty(kingRow, kingCol + 1);
+                                bool condition4 = board.isEmpty(kingRow, kingCol + 2);
+                                bool condition5 = !isSquareAttacked(board, kingRow, kingCol, getOppositeColor(pieceColor));
+                                bool condition6 = !isSquareAttacked(board, kingRow, kingCol + 1, getOppositeColor(pieceColor));
+                                bool condition7 = !isSquareAttacked(board, kingRow, kingCol + 2, getOppositeColor(pieceColor));
+                                bool condition8 = !isSquareAttacked(board, kingRow, kingCol + 2, getOppositeColor(pieceColor));
+                                bool condition9 = !isSquareAttacked(board, kingRow, kingCol + 1, getOppositeColor(pieceColor));
+
+                                std::cout << "Kingside Castling Conditions:" << std::endl;
+                                std::cout << "Condition 1: " << (condition1 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 2: " << (condition2 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 3: " << (condition3 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 4: " << (condition4 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 5: " << (condition5 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 6: " << (condition6 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 7: " << (condition7 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 8: " << (condition8 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 9: " << (condition9 ? "Met" : "Not Met") << std::endl;
+
+                                // Debugging the queenside castling conditions
+                                int queenSideRookCol = kingCol - 4;
+                                bool condition10 = !board.hasPieceMoved(kingRow, kingCol);
+                                bool condition11 = !board.hasPieceMoved(kingRow, queenSideRookCol);
+                                bool condition12 = board.isEmpty(kingRow, kingCol - 1);
+                                bool condition13 = board.isEmpty(kingRow, kingCol - 2);
+                                bool condition14 = board.isEmpty(kingRow, kingCol - 3);
+                                bool condition15 = !isSquareAttacked(board, kingRow, kingCol, getOppositeColor(pieceColor));
+                                bool condition16 = !isSquareAttacked(board, kingRow, kingCol - 1, getOppositeColor(pieceColor));
+                                bool condition17 = !isSquareAttacked(board, kingRow, kingCol - 2, getOppositeColor(pieceColor));
+                                bool condition18 = !isSquareAttacked(board, kingRow, kingCol - 3, getOppositeColor(pieceColor));
+                                bool condition19 = !isSquareAttacked(board, kingRow, kingCol - 4, getOppositeColor(pieceColor));
+
+                                std::cout << "Queenside Castling Conditions:" << std::endl;
+                                std::cout << "Condition 10: " << (condition10 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 11: " << (condition11 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 12: " << (condition12 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 13: " << (condition13 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 14: " << (condition14 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 15: " << (condition15 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 16: " << (condition16 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 17: " << (condition17 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 18: " << (condition18 ? "Met" : "Not Met") << std::endl;
+                                std::cout << "Condition 19: " << (condition19 ? "Met" : "Not Met") << std::endl;
+                            }
+
+
+
                         }
                     }
                     else {
+
+                        std::cout << "Before move:" << std::endl;
+                        board.printBoard();
+
                         // Check if the player clicked on the same square again to unselect the piece
                         if (selectedPieceRow == mouseRow && selectedPieceCol == mouseCol) {
                             isPieceSelected = false;
@@ -133,11 +207,12 @@ void GUI::run() {
                                 // Check if the move leads to the player's own king being in check
                                 PieceColor currentPlayerColor = realPlayerColor;
                                 if (!tempBoard.isInCheck(currentPlayerColor)) {
-                                    std::cout << "Before Move:" << std::endl;
-                                    board.printBoard();
+                                  
                                     board.makeMove(selectedPieceRow, selectedPieceCol, mouseRow, mouseCol);
-                                    std::cout << "After Move:" << std::endl;
+
+                                    std::cout << "After move:" << std::endl;
                                     board.printBoard();
+                                   
                                     isPieceSelected = false; // Player's move is complete, deselect the piece
 
                                     // Change turn after the player makes a valid move
@@ -153,6 +228,7 @@ void GUI::run() {
             }
         }
 
+
         // Clear the screen and redraw the chessboard
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderClear(renderer);
@@ -162,59 +238,58 @@ void GUI::run() {
 
         // AI's turn
         if (!isPlayerTurn && !board.isGameOver(realPlayerColor)) {
-
-            // Get the AI's move using alpha-beta search
             Search search;
-            Move bestMove = search.alphaBetaSearch(board, 2); // Increase the depth for stronger AI, e.g., 4
 
-            // Make the AI's move
-            board.makeMove(bestMove.srcRow, bestMove.srcCol, bestMove.destRow, bestMove.destCol);
-
-            std::cout << "AI Move:" << std::endl;
-            board.printBoard();
-
-            // Check if the AI's move resulted in a checkmate
-            if (board.isCheckmate(aiPlayerColor)) {
-                std::cout << "Checkmate! ";
-                if (aiPlayerColor == PieceColor::WHITE) {
-                    std::cout << "Black wins!" << std::endl;
-                }
-                else {
-                    std::cout << "White wins!" << std::endl;
-                }
-                isPlayerTurn = true; // End the game
-                quit = true; // End the game loop
-            }
-            else if (board.isInCheck(aiPlayerColor)) {
+            if (board.isInCheck(aiPlayerColor)) {
                 std::cout << "Check!" << std::endl;
 
                 // Check if the AI's king is in check and try to move it out of check
                 Move aiKingMove = search.alphaBetaSearch(board, 4); // Increase the depth for stronger AI, e.g., 4
-                board.makeMove(aiKingMove.srcRow, aiKingMove.srcCol, aiKingMove.destRow, aiKingMove.destCol);
-                std::cout << "AI moves its king." << std::endl;
-            }
 
-            isPlayerTurn = true; // AI's move is complete, switch back to the player's turn
-        }
-    }
-
-    // Check for game over conditions and display the result
-    if (board.isGameOver(realPlayerColor) || board.isGameOver(aiPlayerColor)) {
-        if (board.isCheckmate(realPlayerColor) || board.isCheckmate(aiPlayerColor)) {
-            std::cout << "Checkmate! ";
-            if (realPlayerColor == PieceColor::WHITE) {
-                std::cout << "Black wins!" << std::endl;
+                if (board.isValidMove(aiKingMove.srcRow, aiKingMove.srcCol, aiKingMove.destRow, aiKingMove.destCol)) {
+                    // Make the AI's valid move
+                    board.makeMove(aiKingMove.srcRow, aiKingMove.srcCol, aiKingMove.destRow, aiKingMove.destCol);
+                    std::cout << "AI moves its king." << std::endl;
+                }
+                else {
+                    // Handle invalid AI move here (optional)
+                    std::cout << "AI generated an invalid move!" << std::endl;
+                }
             }
             else {
-                std::cout << "White wins!" << std::endl;
-            }
-        }
-        else {
-            std::cout << "It's a stalemate!" << std::endl;
-        }
-    }
-}
+                Move bestMove = search.alphaBetaSearch(board, 2); // Increase the depth for stronger AI, e.g., 4
 
+                if (board.isValidMove(bestMove.srcRow, bestMove.srcCol, bestMove.destRow, bestMove.destCol)) {
+                    // Make the AI's valid move
+                    board.makeMove(bestMove.srcRow, bestMove.srcCol, bestMove.destRow, bestMove.destCol);
+
+                    std::cout << "AI Move:" << std::endl;
+                    board.printBoard();
+
+                    // Check if the AI's move resulted in a checkmate
+                    if (board.isCheckmate(aiPlayerColor)) {
+                        std::cout << "Checkmate! ";
+                        if (aiPlayerColor == PieceColor::WHITE) {
+                            std::cout << "Black wins!" << std::endl;
+                        }
+                        else {
+                            std::cout << "White wins!" << std::endl;
+                        }
+                        isPlayerTurn = true; // End the game
+                        quit = true; // End the game loop
+                    }
+                }
+                else {
+                    // Handle invalid AI move here (optional)
+                    std::cout << "AI generated an invalid move!" << std::endl;
+                }
+            }
+            isPlayerTurn = true; // AI's move is complete, switch back to the player's turn
+        }
+
+    }
+    SDL_Quit();
+}
 
 
 
@@ -392,4 +467,13 @@ PieceColor GUI::choosePlayerColor() {
         }
     }
     return PieceColor::EMPTY;
+}
+
+void GUI::printValidMoves(int selectedPieceRow, int selectedPieceCol) {
+    std::vector<Move> validMoves = generateMovesForPiece(board, selectedPieceRow, selectedPieceCol);
+
+    std::cout << "Valid moves for the selected piece: " << std::endl;
+    for (const Move& move : validMoves) {
+        std::cout << "Frome (" << selectedPieceRow << "," << selectedPieceCol << ") to (" << move.destRow << "," << move.destCol << ")" << std::endl;
+    }
 }
