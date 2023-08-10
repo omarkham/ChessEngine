@@ -12,7 +12,7 @@ public:
     Board();
     void initializeFromFEN();
     bool isValidMove(int srcRow, int srcCol, int destRow, int destCol) const;
-    bool makeMove(int srcRow, int srcCol, int destRow, int destCol);
+    bool makeMove(int srcRow, int srcCol, int destRow, int destCol, PieceType promotionPiece = PieceType::EMPTY);
     void printBoard() const;
     bool isValidPosition(int row, int col) const;
     bool isEmpty(int row, int col) const;
