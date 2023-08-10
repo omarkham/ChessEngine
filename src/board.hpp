@@ -13,7 +13,6 @@ public:
     void initializeFromFEN();
     bool isValidMove(int srcRow, int srcCol, int destRow, int destCol) const;
     bool makeMove(int srcRow, int srcCol, int destRow, int destCol);
-    void printBitboard() const;
     void printBoard() const;
     bool isValidPosition(int row, int col) const;
     bool isEmpty(int row, int col) const;
@@ -22,15 +21,19 @@ public:
     bool isInCheck(PieceColor color) const;
     bool isCheckmate(PieceColor color) const;
     void findKing(PieceType kingType, PieceColor kingColor, int& kingRow, int& kingCol) const;
+    bool isCastlingValid(int srcRow, int srcCol, int destRow, int destCol) const;
 
     PieceColor getOppositeColor(PieceColor color) const;
     PieceType getPieceType(int row, int col) const;
     PieceColor getPieceColor(int row, int col) const;
 
     PieceColor getAIPlayer() const { return aiPlayer; }
-    PieceColor getRealPlayer() const { return realPlayer;  }
-    void setAIPlayer(PieceColor color) { aiPlayer = color;  }
-    void setRealPlayer(PieceColor color) { realPlayer = color;  }
+    PieceColor getRealPlayer() const { return realPlayer; }
+    void setAIPlayer(PieceColor color) { aiPlayer = color; }
+    void setRealPlayer(PieceColor color) { realPlayer = color; }
+
+    void printHasPieceMoved();
+    bool hasPieceMoved(int row, int col) const;
 
 private:
 
@@ -50,6 +53,7 @@ private:
     PieceColor aiPlayer;
     PieceColor realPlayer;
 
+    bool pieceMoved[8][8];
 };
 
 #endif //BOARD_HPP
